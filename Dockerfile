@@ -1,19 +1,24 @@
-# Сборка фронта
-FROM node:20-alpine AS builder
+FROM node:iron-alpine AS build
+
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
+COPY ./package.json .
+COPY ./package-lock.json .
+
 RUN npm ci
 
 COPY . .
-# В проде запросы идут на тот же хост, nginx проксирует /api и /auth на бэкенд
-ARG VITE_API_URL=
-ENV VITE_API_URL=${VITE_API_URL}
+
+ENV NODE_ENV=production
 RUN npm run build
 
-# Раздача статики через nginx
-FROM nginx:1.25-alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+FROM nginx:alpine AS app
+
+WORKDIR /www
+
+RUN rm /etc/nginx/conf.d/*
+
+COPY ./nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /app/dist /www
+RUN chown -R nginx:nginx /www
