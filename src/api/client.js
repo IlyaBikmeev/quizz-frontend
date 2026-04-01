@@ -1,5 +1,6 @@
 const _apiUrl = import.meta.env.VITE_API_URL;
-const API_URL = _apiUrl === '' ? '' : (_apiUrl || 'http://localhost:8080');
+const API_URL =
+  _apiUrl === "" ? "" : _apiUrl || "https://api.quizforge.ilyabikmeev.ru";
 
 let onUnauthorized = () => {};
 
@@ -8,40 +9,44 @@ export function setOnUnauthorized(callback) {
 }
 
 function getToken() {
-  return localStorage.getItem('authToken');
+  return localStorage.getItem("authToken");
 }
 
 export function getAuthHeaders() {
   const token = getToken();
   const headers = {
-    'Content-Type': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   };
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;
 }
 
 export async function apiFetch(path, options = {}) {
-  const url = path.startsWith('http') ? path : `${API_URL}${path}`;
+  const url = path.startsWith("http") ? path : `${API_URL}${path}`;
   const headers = {
     ...getAuthHeaders(),
     ...(options.headers || {}),
   };
-  if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
-    if (!(options.headers && options.headers['Content-Type'])) {
-      headers['Content-Type'] = 'application/json';
+  if (
+    options.body &&
+    typeof options.body === "object" &&
+    !(options.body instanceof FormData)
+  ) {
+    if (!(options.headers && options.headers["Content-Type"])) {
+      headers["Content-Type"] = "application/json";
     }
   }
   const res = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include',
+    credentials: "include",
   });
   if (res.status === 401) {
     onUnauthorized();
-    throw new Error('Необходима авторизация');
+    throw new Error("Необходима авторизация");
   }
   return res;
 }
