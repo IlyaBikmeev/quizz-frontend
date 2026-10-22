@@ -25,9 +25,9 @@ export function AuthProvider({ children }) {
       return false;
     }
     try {
-      const data = await apiJson('/auth/validate-token');
-      setValid(data?.valid === true);
-      return data?.valid === true;
+      await apiJson('/api/v1/users/me');
+      setValid(true);
+      return true;
     } catch {
       setValid(false);
       setToken(null);
