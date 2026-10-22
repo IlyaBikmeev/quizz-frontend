@@ -9,7 +9,11 @@ RUN npm ci
 
 COPY . .
 
+ARG VITE_API_URL=https://api.quizforge.ilyabikmeev.ru
+ENV VITE_API_URL=${VITE_API_URL}
+
 ENV NODE_ENV=production
+RUN npm run build
 RUN npm run build
 
 
