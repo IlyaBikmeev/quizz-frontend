@@ -45,9 +45,8 @@ export function QuizPlayPage() {
         const data = await res.json();
         setAttempt(data);
         const questions = data.questions || [];
-        const progress = data.progress || [];
-        const results = questions.map((_, i) => {
-          const v = progress[i];
+        const results = questions.map((question, i) => {
+          const v = typeof question.correct === 'boolean' ? question.correct : data.progress?.[i];
           return v === true || v === false ? v : null;
         });
         const firstUnanswered = results.findIndex((r) => r === null || r === undefined);
@@ -206,7 +205,9 @@ export function QuizPlayPage() {
   }
 
   if (finished && reviewAfterFinish) {
-    const reviewProgress = attempt.progress || [];
+    const reviewProgress = questions.map((question, i) =>
+      typeof question.correct === 'boolean' ? question.correct : attempt.progress?.[i] ?? null
+    );
     const reviewQuestion = questions[currentIndex];
     const reviewSelected = reviewQuestion?.selectedAnswers ?? [];
     const reviewCorrectAnswers = reviewQuestion?.correctAnswers ?? [];
