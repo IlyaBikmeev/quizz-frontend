@@ -1,61 +1,59 @@
-import { useState, useEffect } from 'react';
+import { ActionIcon, Button, Divider, Group, Pagination, Paper, Stack, Text, Title } from '@mantine/core';
+import { IconFileImport, IconPlus, IconPlayerPlay } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiJson } from '../api/client';
+import { EmptyState, ErrorState, LoadingState } from '../components/PageState';
 
 export function QuizzesPage() {
-  const [page, setPage] = useState(0);
-  const [size] = useState(5);
+  const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [requestKey, setRequestKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    apiJson(`/api/v1/quizzes?page=${page}&size=${size}`)
-      .then((res) => {
-        if (!cancelled) setData(res);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message);
-      });
+    apiJson(`/api/v1/quizzes?page=${page - 1}&size=10`)
+      .then((response) => !cancelled && setData(response))
+      .catch(() => !cancelled && setError('Не удалось загрузить квизы.'));
     return () => { cancelled = true; };
-  }, [page, size]);
+  }, [page, requestKey]);
 
-  if (error) return <div className="alert alert-danger">{error}</div>;
-  if (!data) return <div className="text-center">Загрузка...</div>;
-
-  const { content, totalPages, totalElements } = data;
+  if (error) return <ErrorState title={error} onRetry={() => { setError(''); setData(null); setRequestKey((value) => value + 1); }} />;
+  if (!data) return <LoadingState label="Загрузка квизов…" />;
 
   return (
-    <div>
-      <h1 className="mb-4">Квизы</h1>
-      <div className="mb-3">
-        <Link to="/quizzes/new" className="btn btn-primary">Создать квиз</Link>
-      </div>
-      <div className="list-group">
-        {content && content.length === 0 && <p className="text-muted">Пока нет квизов.</p>}
-        {content && content.map((quiz) => (
-          <div key={quiz.id} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-            <div>
-              <h5 className="mb-1">{quiz.title}</h5>
-              <small className="text-muted">Автор: {quiz.creatorName}</small>
-            </div>
-            <Link to={`/quizzes/${quiz.id}`} className="btn btn-outline-primary btn-sm">Подробнее</Link>
-          </div>
-        ))}
-      </div>
-      {totalPages > 1 && (
-        <nav className="mt-3">
-          <ul className="pagination">
-            <li className={`page-item ${page === 0 ? 'disabled' : ''}`}>
-              <button type="button" className="page-link" onClick={() => setPage((p) => Math.max(0, p - 1))}>Назад</button>
-            </li>
-            <li className="page-item disabled"><span className="page-link">{page + 1} / {totalPages}</span></li>
-            <li className={`page-item ${page >= totalPages - 1 ? 'disabled' : ''}`}>
-              <button type="button" className="page-link" onClick={() => setPage((p) => p + 1)}>Вперёд</button>
-            </li>
-          </ul>
-        </nav>
+    <Stack gap="lg">
+      <Group justify="space-between" align="center">
+        <Title order={1}>Мои квизы</Title>
+        <Group gap="xs">
+          <Button component={Link} to="/quizzes/import" variant="default" leftSection={<IconFileImport size={16} />} visibleFrom="sm">Импортировать</Button>
+          <Button component={Link} to="/quizzes/new" leftSection={<IconPlus size={16} />}>Создать</Button>
+        </Group>
+      </Group>
+
+      {data.content?.length === 0 ? (
+        <EmptyState title="Квизов пока нет" message="Создайте квиз вручную или импортируйте вопросы из файла.">
+          <Group justify="center"><Button component={Link} to="/quizzes/new">Создать квиз</Button><Button component={Link} to="/quizzes/import" variant="default">Импортировать</Button></Group>
+        </EmptyState>
+      ) : (
+        <Paper withBorder>
+          <Stack gap={0}>
+            {data.content.map((quiz, index) => (
+              <div key={quiz.id}>
+                {index > 0 && <Divider />}
+                <Group justify="space-between" wrap="nowrap" p="md">
+                  <div><Text component={Link} to={`/quizzes/${quiz.id}`} fw={600} c="dark" td="none">{quiz.title || 'Без названия'}</Text><Text size="sm" c="dimmed">{quiz.questions?.length || 0} вопросов</Text></div>
+                  <Button component={Link} to={`/quizzes/${quiz.id}`} variant="light" leftSection={<IconPlayerPlay size={16} />} visibleFrom="xs">Открыть</Button>
+                  <ActionIcon component={Link} to={`/quizzes/${quiz.id}`} variant="light" aria-label={`Открыть ${quiz.title}`} size="lg" hiddenFrom="xs"><IconPlayerPlay size={18} /></ActionIcon>
+                </Group>
+              </div>
+            ))}
+          </Stack>
+        </Paper>
       )}
-    </div>
+
+      {data.totalPages > 1 && <Pagination total={data.totalPages} value={page} onChange={(value) => { setPage(value); setData(null); }} mx="auto" />}
+    </Stack>
   );
 }

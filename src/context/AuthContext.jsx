@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setTokenState] = useState(() => localStorage.getItem('authToken'));
-  const [valid, setValid] = useState(null);
+  const [valid, setValid] = useState(() => localStorage.getItem('authToken') ? null : false);
 
   const setToken = useCallback((newToken) => {
     if (newToken) {
@@ -25,9 +25,9 @@ export function AuthProvider({ children }) {
       return false;
     }
     try {
-      const data = await apiJson('/auth/validate-token');
-      setValid(data?.valid === true);
-      return data?.valid === true;
+      await apiJson('/api/v1/users/me');
+      setValid(true);
+      return true;
     } catch {
       setValid(false);
       setToken(null);
@@ -41,10 +41,10 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (token) {
-      checkValid();
-    } else {
-      setValid(false);
+      const timeoutId = window.setTimeout(checkValid, 0);
+      return () => window.clearTimeout(timeoutId);
     }
+    return undefined;
   }, [token, checkValid]);
 
   const value = {
@@ -58,6 +58,7 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');

@@ -1,37 +1,29 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Avatar, Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { IconLogout } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiJson } from '../api/client';
+import { ErrorState, LoadingState } from '../components/PageState';
+import { useAuth } from '../context/AuthContext';
 
 export function ProfilePage() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    apiJson('/api/v1/users/me')
-      .then(setUser)
-      .catch((err) => setError(err.message));
-  }, []);
-
-  if (error) return <div className="alert alert-danger">{error}</div>;
-  if (!user) return <div className="text-center">Загрузка...</div>;
-
-  const initial = (user.name || user.email || '?').charAt(0).toUpperCase();
-
+  const { setToken } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => { apiJson('/api/v1/users/me').then(setUser).catch(() => setError('Не удалось загрузить профиль.')); }, []);
+  if (error) return <ErrorState title={error} />;
+  if (!user) return <LoadingState label="Загрузка профиля…" />;
+  const logout = () => { setToken(null); navigate('/login'); };
   return (
-    <div>
-      <h1 className="mb-4">Профиль</h1>
-      <div className="card">
-        <div className="card-body">
-          <div className="d-flex align-items-center mb-3">
-            <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style={{ width: 64, height: 64, fontSize: '1.5rem' }}>{initial}</div>
-            <div>
-              <h5 className="mb-0">{user.name || '—'}</h5>
-              <p className="text-muted mb-0">{user.email}</p>
-            </div>
-          </div>
-          <Link to="/settings" className="btn btn-outline-primary">Настройки</Link>
-        </div>
-      </div>
-    </div>
+    <Stack maw={600} mx="auto">
+      <Title order={1}>Профиль</Title>
+      <Paper withBorder p="lg">
+        <Group justify="space-between" align="center">
+          <Group><Avatar size="lg" color="blue">{(user.name || user.email || '?')[0].toUpperCase()}</Avatar><div><Text fw={600}>{user.name || 'Имя не указано'}</Text><Text c="dimmed" size="sm">{user.email}</Text></div></Group>
+          <Button color="red" variant="subtle" leftSection={<IconLogout size={16} />} onClick={logout}>Выйти</Button>
+        </Group>
+      </Paper>
+    </Stack>
   );
 }
